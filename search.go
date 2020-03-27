@@ -717,6 +717,25 @@ type TotalHits struct {
 	Relation string `json:"relation"` // how the value should be interpreted: accurate ("eq") or a lower bound ("gte")
 }
 
+func (t *TotalHits) UnmarshalJSON(b []byte) error {
+	// ES >= 7.0 uses an object
+	if b[0] == '{' {
+		type plain TotalHits
+		var p plain
+		if err := json.Unmarshal(b, &p); err != nil {
+			return err
+		}
+		*t = TotalHits(p)
+		return nil
+	}
+
+	// ES < 7 uses a single number
+	if err := json.Unmarshal(b, &t.Value); err != nil {
+		return err
+	}
+	return nil
+}
+
 // SearchHit is a single hit.
 type SearchHit struct {
 	Score          *float64                       `json:"_score,omitempty"`   // computed score
